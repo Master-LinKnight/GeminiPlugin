@@ -4,18 +4,21 @@
   "name": "Gemini AI Generator",
   "version": "1.0.0",
   "main": "index.html",
-  "host": [
-    {
-      "app": "PS",
-      "minVersion": "24.0.0"
+  "host": {
+    "app": "PS",
+    "minVersion": "24.0.0",
+    "data": {
+      "apiVersion": 2
     }
-  ],
+  },
   "entrypoints": [
     {
       "type": "panel",
       "id": "geminiGeneratorPanel",
       "label": {
-        "default": "Gemini AI 生图"
+        "default": "Gemini AI 生图",
+        "zh-CN": "Gemini AI 生图",
+        "en-US": "Gemini AI Generator"
       },
       "minimumSize": {
         "width": 260,
