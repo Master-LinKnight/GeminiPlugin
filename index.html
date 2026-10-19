@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <title>Gemini AI 生图</title>
+  <title>Gemini AI 创成式填充与生图</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -43,7 +43,73 @@
     .row .field {
       flex: 1;
     }
-    button {
+
+    /* 选项卡样式 */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #3c3c3c;
+      margin-bottom: 12px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 8px 4px;
+      text-align: center;
+      background: none;
+      border: none;
+      color: #888;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover {
+      color: #ddd;
+    }
+    .tab-btn.active {
+      color: #fff;
+      border-bottom: 2px solid #1473e6;
+      background: rgba(20, 115, 230, 0.08);
+    }
+
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+
+    /* 选区提示盒 */
+    .tip-box {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #94a3b8;
+    }
+    .tip-box strong {
+      color: #38bdf8;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+      font-size: 11px;
+      color: #aaa;
+      cursor: pointer;
+    }
+    .checkbox-row input {
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .primary-btn {
       width: 100%;
       background: #1473e6;
       border: none;
@@ -55,14 +121,15 @@
       cursor: pointer;
       transition: background 0.2s;
     }
-    button:hover:not(:disabled) {
+    .primary-btn:hover:not(:disabled) {
       background: #0d66d0;
     }
-    button:disabled {
+    .primary-btn:disabled {
       background: #484848;
       color: #8e8e8e;
       cursor: not-allowed;
     }
+
     #status {
       margin-top: 10px;
       font-size: 11px;
@@ -79,47 +146,99 @@
   </style>
 </head>
 <body>
+  <!-- API Key 配置 -->
   <div class="field">
     <label for="apiKey">Gemini API Key</label>
     <input type="password" id="apiKey" placeholder="输入以 AIzaSy 开头的 Key" />
-    <div class="hint">Key 仅保存在本地 PS 缓存中，直连 Google 官方</div>
+    <div class="hint">直连 Google 官方，Key 仅保存在本地 PS 缓存</div>
   </div>
 
-  <div class="field">
-    <label for="modelSelect">模型引擎</label>
-    <select id="modelSelect">
-      <option value="gemini-3-pro-image" selected>Nano Banana Pro (Gemini 3 Pro Image)</option>
-      <option value="gemini-3-flash-image">Nano Banana 2 (Gemini 3 Flash Image)</option>
-    </select>
+  <!-- 模式切换 Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tabInpaintBtn">🪄 创成式填充 (选区/局部)</button>
+    <button class="tab-btn" id="tabT2IBtn">🎨 全新文生图</button>
   </div>
 
-  <div class="row">
+  <!-- Tab 1: 创成式填充 (Generative Fill / Inpainting) -->
+  <div id="tabInpaint" class="tab-content active">
+    <div class="tip-box">
+      <strong>✨ 创成式填充工作流：</strong><br>
+      1. 在 PS 画布上使用<strong>套索 (L)</strong>、<strong>选框 (M)</strong> 或<strong>主体选择工具</strong>圈出目标区域。<br>
+      2. 输入填充指令（如：移除路人、添加一只猫咪、换成红色皮衣）。<br>
+      3. 点击按钮，AI 将结合周边画面智能补全并自动加上图层蒙版！
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="inpaintModelSelect">模型引擎</label>
+        <select id="inpaintModelSelect">
+          <option value="gemini-3-pro-image" selected>Nano Banana Pro (Gemini 3 Pro Image) - 强力推荐</option>
+          <option value="gemini-3-flash-image">Nano Banana 2 (Gemini 3 Flash Image)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="inpaintResSelect">生成画质</label>
+        <select id="inpaintResSelect">
+          <option value="2K" selected>2K (兼顾画质与速度)</option>
+          <option value="4K">4K (极限超清)</option>
+          <option value="1K">1K (极速模式)</option>
+        </select>
+      </div>
+    </div>
+
     <div class="field">
-      <label for="aspectRatioSelect">画面比例</label>
-      <select id="aspectRatioSelect">
+      <label for="inpaintPrompt">填充/修改提示词 (Prompt)</label>
+      <textarea id="inpaintPrompt" rows="4" placeholder="例如: 移除选区中的电线杆并填充自然蓝天；或者: 在选区草地上添加一只晒太阳的金毛犬..."></textarea>
+    </div>
+
+    <label class="checkbox-row">
+      <input type="checkbox" id="autoMaskCheckbox" checked />
+      <span>自动应用选区蒙版（仅替换选区部分，方便后续画笔微调）</span>
+    </label>
+
+    <button id="inpaintBtn" class="primary-btn">🪄 立即执行创成式填充</button>
+  </div>
+
+  <!-- Tab 2: 全新文生图 (Text to Image) -->
+  <div id="tabT2I" class="tab-content">
+    <div class="row">
+      <div class="field">
+        <label for="t2iModelSelect">模型引擎</label>
+        <select id="t2iModelSelect">
+          <option value="gemini-3-pro-image" selected>Nano Banana Pro (Pro Image)</option>
+          <option value="gemini-3-flash-image">Nano Banana 2 (Flash Image)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="t2iResSelect">分辨率</label>
+        <select id="t2iResSelect">
+          <option value="2K" selected>2K</option>
+          <option value="1K">1K</option>
+          <option value="4K">4K</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="t2iAspectSelect">画面比例</label>
+      <select id="t2iAspectSelect">
         <option value="1:1" selected>1:1 (正方形)</option>
         <option value="16:9">16:9 (横版宽屏)</option>
         <option value="9:16">9:16 (竖屏海报)</option>
         <option value="4:3">4:3 (标准横屏)</option>
-        <option value="3:2">3:2 (单反横幅)</option>
+        <option value="3:2">3:2 (单反比例)</option>
       </select>
     </div>
+
     <div class="field">
-      <label for="resSelect">分辨率</label>
-      <select id="resSelect">
-        <option value="2K" selected>2K (推荐)</option>
-        <option value="1K">1K (极速)</option>
-        <option value="4K">4K (极限高质)</option>
-      </select>
+      <label for="t2iPrompt">生成提示词 (Prompt)</label>
+      <textarea id="t2iPrompt" rows="4" placeholder="描述想要生成的画面，文字排版请用英文双引号包裹..."></textarea>
     </div>
+
+    <button id="t2iBtn" class="primary-btn">🎨 生成新画面置入画板</button>
   </div>
 
-  <div class="field">
-    <label for="prompt">生成提示词 (Prompt)</label>
-    <textarea id="prompt" rows="5" placeholder="描述想要生成的画面。如需精确文字排版，请用英文双引号包裹文字，例如: A neon sign reading &quot;COFFEE&quot;..."></textarea>
-  </div>
-
-  <button id="generateBtn">生成并置入画板</button>
+  <!-- 状态提示 -->
   <div id="status"></div>
 
   <script src="index.js"></script>
