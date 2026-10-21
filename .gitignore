@@ -1,7 +1,13 @@
+# macOS
 .DS_Store
+
+# 日志 / 依赖 / 编辑器
 *.log
 node_modules/
 .vscode/
 .idea/
 dist/
+
+# 构建产物：.ccx 通过 GitHub Releases 分发，不提交进仓库
+# 本地打包：zip -X -q -9 GeminiAI-Generator.ccx manifest.json index.html index.js
 *.ccx

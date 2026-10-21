@@ -36,11 +36,14 @@ Photoshop 原生创成式填充如果选择第三方高阶模型（如 Google Ge
 
 ## 📦 安装与加载方法（三种方式任选其一）
 
-### 方式一：双击 `.ccx` 一键安装（推荐，最省心）
+### 方式一：从 Releases 下载 `.ccx` 一键安装（推荐，最省心）
+
+> `.ccx` 属于构建产物，**不随源码提交**（见 `.gitignore`），请到 Releases 页面下载最新版：
+> <https://github.com/Master-LinKnight/GeminiPlugin/releases/latest>
 
 无需配置开发者模式，适合日常直接使用：
 
-1. 打开本项目文件夹，找到已打包好的 **`GeminiAI-Generator.ccx`** 文件。
+1. 打开上面的 Releases 页面，下载 **`GeminiAI-Generator.ccx`**。
 2. **直接双击它**，Adobe Creative Cloud 客户端会自动弹出安装确认，点击**「安装」**。
 3. 打开 Photoshop，在顶部菜单栏选择 **「增效工具 (Plugins)」 -> 「Gemini AI 生图」**，即可直接唤出操作面板。
 
@@ -52,9 +55,14 @@ Photoshop 原生创成式填充如果选择第三方高阶模型（如 Google Ge
 
 > 原理：`.ccx` 本质上就是一个 zip 压缩包，Photoshop 会扫描自己目录下的 `Plug-ins` 文件夹，把里面**解压后的插件文件夹**当作插件加载。
 
-#### 第 1 步：把 `.ccx` 解压成文件夹
+#### 第 1 步：准备三个插件文件
 
-把 `GeminiAI-Generator.ccx` 复制一份，改后缀为 `.zip`（或直接用解压工具打开），解压后应得到三个文件：
+两种来源任选其一：
+
+* 从 **Releases** 下载 `GeminiAI-Generator.ccx`，复制一份改后缀为 `.zip`（或直接用解压工具打开）后解压；
+* 或者直接使用本仓库的源码目录——根目录下就是这三个文件。
+
+无论哪种方式，最终应得到：
 
 ```text
 manifest.json
@@ -95,8 +103,7 @@ C:\Program Files\Adobe\Adobe Photoshop 2026\Plug-ins\GeminiAI-Generator\
 
 #### 说明与排错
 
-* 本项目自带的 `install-mac.command`（macOS）和 `install-win.bat`（Windows）就是**自动完成上述步骤**的脚本，双击运行即可，不用手动建文件夹。
-* macOS 若双击脚本无反应，先在终端执行 `chmod +x install-mac.command`。
+* 解压时务必保证 `manifest.json` 与 `index.html`、`index.js` 在**同一层**，不要多套一层文件夹。
 * 这是**版本专属目录**：升级到新的 Photoshop 大版本（如 2026 → 2027）后需要重新拷一次。
 * 菜单里找不到插件时依次检查：
   1. Photoshop 版本是否 ≥ 2024（插件要求 25.0+）；
@@ -190,14 +197,27 @@ GeminiPlugin/
 ├── manifest.json            # UXP 插件清单（声明权限、尺寸与入口）
 ├── index.html               # 插件 UI 视图（暗色质感、响应式胶囊选项卡）
 ├── index.js                 # 核心逻辑（选区裁切、API 传输、图层对位与蒙版批处理）
-├── GeminiAI-Generator.ccx   # 一键安装包（双击安装，或解压后放进 Plug-ins 目录）
-├── install-mac.command      # macOS 一键安装脚本（自动拷贝到 Plug-ins）
-├── install-win.bat          # Windows 一键安装脚本（自动拷贝到 Plug-ins）
-└── README.md                # 完整使用说明与开发手册
+├── LICENSE                  # MIT 许可证
+├── README.md                # 完整使用说明与开发手册
+└── GeminiAI-Generator.ccx   # 构建产物：本地打包，不发仓库，通过 Releases 分发
 ```
+
+### 自行打包 `.ccx`
+
+`.ccx` 就是一个 zip 包，根目录放这三个文件即可：
+
+```bash
+zip -X -q -9 GeminiAI-Generator.ccx manifest.json index.html index.js
+```
+
+> 发布新版本前记得同步修改 `manifest.json` 里的 `version`（如 `1.1.0`），否则 Creative Cloud 不会识别为升级。
 
 ---
 
 ## 📄 授权与许可
 
-基于 MIT 许可证开源，欢迎自由修改与二次开发。
+本项目基于 [MIT 许可证](LICENSE) 开源，欢迎自由修改、二次开发与分发。
+
+> **关于贡献**：本仓库**不接受 Pull Request**（仓库设置已限制为仅协作者可创建 PR）。
+> 你可以自由 Fork 并按照 MIT 条款使用和修改代码，但请勿直接向本仓库提交代码；
+> 问题反馈请通过 Issues 提交。
