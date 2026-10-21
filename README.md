@@ -34,7 +34,7 @@ Photoshop 原生创成式填充如果选择第三方高阶模型（如 Google Ge
 
 ---
 
-## 📦 安装与加载方法（两种方式任选其一）
+## 📦 安装与加载方法（三种方式任选其一）
 
 ### 方式一：双击 `.ccx` 一键安装（推荐，最省心）
 
@@ -46,7 +46,66 @@ Photoshop 原生创成式填充如果选择第三方高阶模型（如 Google Ge
 
 ---
 
-### 方式二：通过 Adobe UXP Developer Tool (UDT) 加载
+### 方式二：解压即用（直接放进 Photoshop 的 `Plug-ins` 目录）
+
+不需要 Creative Cloud、不需要开发者模式、不需要联网安装，**拷进去重启即用**，适合离线环境和多版本共存。
+
+> 原理：`.ccx` 本质上就是一个 zip 压缩包，Photoshop 会扫描自己目录下的 `Plug-ins` 文件夹，把里面**解压后的插件文件夹**当作插件加载。
+
+#### 第 1 步：把 `.ccx` 解压成文件夹
+
+把 `GeminiAI-Generator.ccx` 复制一份，改后缀为 `.zip`（或直接用解压工具打开），解压后应得到三个文件：
+
+```text
+manifest.json
+index.html
+index.js
+```
+
+#### 第 2 步：在 `Plug-ins` 目录里建插件文件夹
+
+**macOS**
+
+```text
+/Applications/Adobe Photoshop 2026/Plug-ins/GeminiAI-Generator/
+```
+
+1. 退出 Photoshop（`⌘Q`）。
+2. 打开「访达 → 应用程序」，找到 `Adobe Photoshop 2026` **文件夹**（不是那个 .app）。
+3. 进入其中的 `Plug-ins`，新建文件夹 `GeminiAI-Generator`。
+4. 把上一步的 3 个文件拷进去。系统提示无权访问时输入开机密码，或右键 → 显示简介 → 解锁后授权。
+
+**Windows**
+
+```text
+C:\Program Files\Adobe\Adobe Photoshop 2026\Plug-ins\GeminiAI-Generator\
+```
+
+1. 退出 Photoshop。
+2. 打开 `C:\Program Files\Adobe\Adobe Photoshop 2026\Plug-ins`（版本号按你实际安装的改，如 2024 / 2025）。
+3. 新建文件夹 `GeminiAI-Generator`，把 3 个文件拷进去。
+4. 若提示需要管理员权限，点「继续」；或以**管理员身份**运行资源管理器 / 解压软件。
+
+> ⚠️ **层级一定不能错**：`manifest.json` 必须直接在 `GeminiAI-Generator` 文件夹里，
+> **不能**出现 `Plug-ins/GeminiAI-Generator/GeminiAI-Generator/manifest.json` 这种多套一层的情况。
+
+#### 第 3 步：重启 Photoshop
+
+彻底退出后重新打开，顶部菜单 **「增效工具 (Plugins)」→「Gemini AI 生图」** 即可使用。
+
+#### 说明与排错
+
+* 本项目自带的 `install-mac.command`（macOS）和 `install-win.bat`（Windows）就是**自动完成上述步骤**的脚本，双击运行即可，不用手动建文件夹。
+* macOS 若双击脚本无反应，先在终端执行 `chmod +x install-mac.command`。
+* 这是**版本专属目录**：升级到新的 Photoshop 大版本（如 2026 → 2027）后需要重新拷一次。
+* 菜单里找不到插件时依次检查：
+  1. Photoshop 版本是否 ≥ 2024（插件要求 25.0+）；
+  2. 文件夹层级是否多套了一层；
+  3. 是否**完全退出并重启**了 Photoshop（只关窗口不算）。
+
+---
+
+### 方式三：通过 Adobe UXP Developer Tool (UDT) 加载
 
 适合需要查看控制台日志、修改源码或热重载调试的开发者：
 
@@ -130,8 +189,10 @@ Photoshop 原生创成式填充如果选择第三方高阶模型（如 Google Ge
 GeminiPlugin/
 ├── manifest.json            # UXP 插件清单（声明权限、尺寸与入口）
 ├── index.html               # 插件 UI 视图（暗色质感、响应式胶囊选项卡）
-├── index.js                 # 核心逻辑（智能多模态压缩、API 传输、图层与蒙版批处理）
-├── GeminiAI-Generator.ccx   # 一键安装包（双击即可安装至 Photoshop）
+├── index.js                 # 核心逻辑（选区裁切、API 传输、图层对位与蒙版批处理）
+├── GeminiAI-Generator.ccx   # 一键安装包（双击安装，或解压后放进 Plug-ins 目录）
+├── install-mac.command      # macOS 一键安装脚本（自动拷贝到 Plug-ins）
+├── install-win.bat          # Windows 一键安装脚本（自动拷贝到 Plug-ins）
 └── README.md                # 完整使用说明与开发手册
 ```
 
