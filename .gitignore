@@ -9,5 +9,6 @@ node_modules/
 dist/
 
 # 构建产物：.ccx 通过 GitHub Releases 分发，不提交进仓库
-# 本地打包：zip -X -q -9 GeminiAI-Generator.ccx manifest.json index.html index.js
+# 本地打包（在 docs/ 目录内执行，保证 manifest 位于压缩包根目录）：
+# cd docs && zip -X -q -9 ../GeminiAI-Generator.ccx manifest.json index.html index.js
 *.ccx

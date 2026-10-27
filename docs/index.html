@@ -167,6 +167,42 @@
       cursor: pointer;
     }
 
+    /* 参考图选择行 */
+    .ref-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ghost-btn {
+      background: #2f2f2f;
+      border: 1px solid #3c3c3c;
+      color: #ddd;
+      border-radius: 4px;
+      padding: 5px 8px;
+      font-size: 11px;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .ghost-btn:hover {
+      background: #3a3a3a;
+      border-color: #4a4a4a;
+    }
+    .ref-name {
+      flex: 1;
+      min-width: 0;
+      font-size: 11px;
+      color: #8e8e8e;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ref-name.has-file {
+      color: #69db7c;
+    }
+
     .primary-btn {
       width: 100%;
       background: #1473e6;
@@ -254,6 +290,18 @@
       <textarea id="inpaintPrompt" rows="3" placeholder="例如: 移除选区中的电线杆并填充蓝天；或者: 在草地上添加一只金毛犬..."></textarea>
     </div>
 
+    <div class="field">
+      <div class="field-header">
+        <label>参考图（可选）</label>
+        <span class="test-link" id="inpaintRefClear" style="display:none">✕ 清除</span>
+      </div>
+      <div class="ref-row">
+        <button type="button" class="ghost-btn" id="inpaintRefBtn">📎 选择参考图</button>
+        <span class="ref-name" id="inpaintRefName">未选择</span>
+      </div>
+      <div class="hint">仅作风格/主体参考，不复制其构图；建议不超过 8MB</div>
+    </div>
+
     <label class="checkbox-row">
       <input type="checkbox" id="autoMaskCheckbox" checked />
       <span>自动应用选区蒙版（方便微调）</span>
@@ -299,6 +347,18 @@
     <div class="field">
       <label for="t2iPrompt">生成提示词 (Prompt)</label>
       <textarea id="t2iPrompt" rows="3" placeholder="描述想要生成的画面。排版文字请用英文双引号包裹..."></textarea>
+    </div>
+
+    <div class="field">
+      <div class="field-header">
+        <label>参考图（可选）</label>
+        <span class="test-link" id="t2iRefClear" style="display:none">✕ 清除</span>
+      </div>
+      <div class="ref-row">
+        <button type="button" class="ghost-btn" id="t2iRefBtn">📎 选择参考图</button>
+        <span class="ref-name" id="t2iRefName">未选择</span>
+      </div>
+      <div class="hint">参考其风格/主体/配色，生成新画面；建议不超过 8MB</div>
     </div>
 
     <button id="t2iBtn" class="primary-btn">🎨 生成新画面置入画板</button>

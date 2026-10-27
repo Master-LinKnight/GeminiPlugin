@@ -17,6 +17,15 @@ Photoshop 原生创成式填充如果选择第三方高阶模型（如 Google Ge
 
 ## 🛠️ 最近版本改动记录 (Changelog)
 
+### v1.2.0（2026-10-27）参考图功能
+
+* **🖼 新增「参考图」上传（两个模式都支持）**：局部重绘与全新生图都可选传一张 JPG / PNG / WebP（≤ 8MB）作为主体、风格或配色参考，相当于 Photoshop 创成式填充里的参考图。
+  * 请求中参考图作为**独立的图像 part** 传入，提示词明确区分「第一张是要编辑的图、第二张仅作参考」，避免模型照抄参考图构图。
+  * 不选参考图时，请求体与旧版本完全一致，不影响现有行为。
+  * 选图后显示文件名与体积，可随时「✕ 清除」。
+
+**v1.1.0 及更早的优化：**
+
 针对大图卡死、UI 截断以及调试加载等常见问题，插件已进行了全面重构优化：
 
 1. **🔥 超大图/高位深智能优化（彻底解决卡在“推理中”问题）**：
@@ -60,7 +69,7 @@ Photoshop 原生创成式填充如果选择第三方高阶模型（如 Google Ge
 两种来源任选其一：
 
 * 从 **Releases** 下载 `GeminiAI-Generator.ccx`，复制一份改后缀为 `.zip`（或直接用解压工具打开）后解压；
-* 或者直接使用本仓库的源码目录——根目录下就是这三个文件。
+* 或者直接使用本仓库的源码目录——三个文件都在 `docs/` 文件夹里。
 
 无论哪种方式，最终应得到：
 
@@ -123,7 +132,7 @@ C:\Program Files\Adobe\Adobe Photoshop 2026\Plug-ins\GeminiAI-Generator\
    * ⚠️ **勾选后必须彻底重启 Photoshop 才能生效！**
 3. **加载插件**：
    * 启动顺序：**先启动 Photoshop**，等待主页加载完毕；**再启动 UDT**。
-   * 在 UDT 中点击 **Add Plugin**，选择本项目中的 `manifest.json`。
+   * 在 UDT 中点击 **Add Plugin**，选择本项目中的 `docs/manifest.json`。
    * 在插件卡片右侧点击 **Load**（代码修改后点击 **Reload** 即可实时热重载）。
 
 > ❓ **常见报错排查**：
@@ -163,6 +172,7 @@ C:\Program Files\Adobe\Adobe Photoshop 2026\Plug-ins\GeminiAI-Generator\
    * **模型引擎**：默认 `Nano Banana 2.1`（最新，速度与画质平衡）；可选 `Nano Banana 2`（性价比）或 `Nano Banana Pro`（画质极致）。
    * **生成画质**：`4K (超清，默认)`、`2K (平衡)`、`1K (极速)`。
    * **修改提示词 (Prompt)**：用简明准确的语言描述你希望将选区变成什么。
+   * **参考图（可选）**：可上传一张 JPG / PNG / WebP 作为风格、主体或配色参考。模型会把它当作参考，但**只修改选区**、不复制参考图的构图与视角。
    * **自动应用选区蒙版**：默认勾选。生成的画面会自动作为新图层置入，并**仅保留圈选区域**，其他原图区域不受影响。
 4. 点击 **「🪄 立即执行局部重绘」**。
 5. 生成完毕后，图层面板会多出一个自带蒙版的图层，你可以随时使用画笔对边缘做羽化和擦除微调。
@@ -184,6 +194,7 @@ C:\Program Files\Adobe\Adobe Photoshop 2026\Plug-ins\GeminiAI-Generator\
    * **画面比例**：支持 `1:1`、`16:9`、`9:16`、`4:3`、`3:4`、`3:2`、`2:3` 等主流比例。
    * **画质选择**：`4K`（默认）、`2K`、`1K`。
    * **提示词**：描述画面构图、主体、光影与风格。如需在画面中排版文字，可用英文双引号包裹（如：`A neon sign on a brick wall reading "OPEN 24H"`）。
+   * **参考图（可选）**：上传一张 JPG / PNG / WebP（≤ 8MB），模型会参考其主体、风格与配色生成**全新画面**，而不是简单复制或修图。
 3. 点击 **「🎨 生成新画面置入画板」**：
    * 若当前未打开文档，插件会自动新建画板并展现新图；
    * 若已有画板，会自动作为新图层居中置入。
@@ -194,23 +205,27 @@ C:\Program Files\Adobe\Adobe Photoshop 2026\Plug-ins\GeminiAI-Generator\
 
 ```text
 GeminiPlugin/
-├── manifest.json            # UXP 插件清单（声明权限、尺寸与入口）
-├── index.html               # 插件 UI 视图（暗色质感、响应式胶囊选项卡）
-├── index.js                 # 核心逻辑（选区裁切、API 传输、图层对位与蒙版批处理）
+├── docs/                    # 插件本体（UXP 以 manifest 所在目录为插件根）
+│   ├── manifest.json        # UXP 插件清单（声明权限、尺寸与入口）
+│   ├── index.html           # 插件 UI 视图（暗色质感、响应式胶囊选项卡）
+│   └── index.js             # 核心逻辑（选区裁切、API 传输、图层对位与蒙版批处理）
 ├── LICENSE                  # MIT 许可证
 ├── README.md                # 完整使用说明与开发手册
+├── AUDIT.md                 # 代码审计报告
 └── GeminiAI-Generator.ccx   # 构建产物：本地打包，不发仓库，通过 Releases 分发
 ```
 
 ### 自行打包 `.ccx`
 
-`.ccx` 就是一个 zip 包，根目录放这三个文件即可：
+`.ccx` 就是一个 zip 包，**压缩包根目录**必须直接是那三个文件（不能带 `docs/` 这一层）：
 
 ```bash
-zip -X -q -9 GeminiAI-Generator.ccx manifest.json index.html index.js
+cd docs
+zip -X -q -9 ../GeminiAI-Generator.ccx manifest.json index.html index.js
+cd ..
 ```
 
-> 发布新版本前记得同步修改 `manifest.json` 里的 `version`（如 `1.1.0`），否则 Creative Cloud 不会识别为升级。
+> 发布新版本前记得同步修改 `docs/manifest.json` 里的 `version`（如 `1.2.0`），否则 Creative Cloud 不会识别为升级。
 
 ---
 

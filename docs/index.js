@@ -27,6 +27,14 @@ const t2iAspectSelect = document.getElementById('t2iAspectSelect');
 const t2iPrompt = document.getElementById('t2iPrompt');
 const t2iBtn = document.getElementById('t2iBtn');
 
+// 参考图（可选）控件
+const inpaintRefBtn = document.getElementById('inpaintRefBtn');
+const inpaintRefName = document.getElementById('inpaintRefName');
+const inpaintRefClear = document.getElementById('inpaintRefClear');
+const t2iRefBtn = document.getElementById('t2iRefBtn');
+const t2iRefName = document.getElementById('t2iRefName');
+const t2iRefClear = document.getElementById('t2iRefClear');
+
 // 1. 初始化：读取本地保存的 API Key
 const savedKey = window.localStorage.getItem('gemini_api_key');
 if (savedKey) {
@@ -72,6 +80,90 @@ function base64ToArrayBuffer(base64) {
   }
   return bytes.buffer;
 }
+
+// ==========================================
+// 参考图（可选）
+// ==========================================
+const REF_MAX_BYTES = 8 * 1024 * 1024; // 8MB，预留 base64 膨胀与主图的空间
+const REF_MIME_BY_EXT = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp'
+};
+const refImages = { inpaint: null, t2i: null };
+
+function formatSize(bytes) {
+  if (bytes >= 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  return Math.round(bytes / 1024) + ' KB';
+}
+
+function renderRef(tab) {
+  const ref = refImages[tab];
+  const nameEl = tab === 'inpaint' ? inpaintRefName : t2iRefName;
+  const clearEl = tab === 'inpaint' ? inpaintRefClear : t2iRefClear;
+
+  if (ref) {
+    nameEl.innerText = `${ref.name}（${formatSize(ref.bytes)}）`;
+    nameEl.classList.add('has-file');
+    clearEl.style.display = '';
+  } else {
+    nameEl.innerText = '未选择';
+    nameEl.classList.remove('has-file');
+    clearEl.style.display = 'none';
+  }
+}
+
+// 读取参考图为 base64；返回 null 表示用户取消或校验失败
+async function pickRefImage(tab) {
+  try {
+    const file = await fs.getFileForOpening({ types: ['jpg', 'jpeg', 'png', 'webp'] });
+    if (!file) return null; // 用户取消选择
+
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const mimeType = REF_MIME_BY_EXT[ext];
+    if (!mimeType) {
+      setStatus('不支持的参考图格式，请使用 JPG / PNG / WebP。', true);
+      return null;
+    }
+
+    const buffer = await file.read({ format: formats.binary });
+    const bytes = buffer.byteLength;
+    if (bytes > REF_MAX_BYTES) {
+      setStatus(`参考图过大（${formatSize(bytes)}），请压缩到 ${formatSize(REF_MAX_BYTES)} 以内。`, true);
+      return null;
+    }
+
+    refImages[tab] = {
+      name: file.name,
+      mimeType,
+      bytes,
+      base64: arrayBufferToBase64(buffer)
+    };
+    renderRef(tab);
+    setStatus(`已选择参考图：${file.name}（${formatSize(bytes)}）`);
+    return refImages[tab];
+  } catch (e) {
+    console.error('[Pick reference image error]', e);
+    setStatus(`读取参考图失败: ${e.message}`, true);
+    return null;
+  }
+}
+
+inpaintRefBtn.addEventListener('click', () => pickRefImage('inpaint'));
+t2iRefBtn.addEventListener('click', () => pickRefImage('t2i'));
+
+inpaintRefClear.addEventListener('click', () => {
+  refImages.inpaint = null;
+  renderRef('inpaint');
+  setStatus('已清除参考图，恢复纯选区重绘模式。');
+});
+
+t2iRefClear.addEventListener('click', () => {
+  refImages.t2i = null;
+  renderRef('t2i');
+  setStatus('已清除参考图。');
+});
 
 // ==========================================
 // 选区与置入几何工具
@@ -310,34 +402,52 @@ inpaintBtn.addEventListener('click', async () => {
     const sizeKb = Math.round(inputBuffer.byteLength / 1024);
 
     // 3. 构建多模态 Inpainting 增强提示词
+    const refImage = refImages.inpaint;
+    const refNote = refImage
+      ? `\nReference: a SECOND image is attached and is ONLY a style / subject / color-palette reference. The FIRST image is the one to edit. Do not copy the reference's composition, framing, background or camera angle.\n`
+      : '';
+
     let systemInstruction = "";
     if (hasSelection) {
       systemInstruction =
         `Task: Professional Photoshop Generative Fill (Inpainting).\n` +
         `Context: This image is a cropped region (${targetRect.width}x${targetRect.height}px) taken from a larger photo. The user's selected area is roughly the central part of this crop; the surrounding border is context provided only for seamless blending.\n` +
         `Fill instruction: "${prompt}".\n` +
+        refNote +
         `Requirements: Modify only the central selected area. Keep the outer border pixels as close to the original as possible, and make the new content blend seamlessly with the surrounding lighting, shadow direction, optical perspective, camera depth of field and grain. Return the exact same framing and aspect ratio as the input crop.`;
     } else {
       systemInstruction =
         `Task: Professional Photoshop Image Modification.\n` +
         `Instruction: "${prompt}".\n` +
+        refNote +
         `Requirements: Modify the image according to the instruction while maintaining photorealism, style consistency, and high fidelity. Return the exact same framing and aspect ratio as the input image.`;
     }
 
-    setStatus(`区域已优化 (${targetRect.width}x${targetRect.height} / ${sizeKb}KB)，正在向 ${model} 发起创意图层推理...`);
+    setStatus(`区域已优化 (${targetRect.width}x${targetRect.height} / ${sizeKb}KB)${refImage ? ' + 参考图' : ''}，正在向 ${model} 发起创意图层推理...`);
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const requestParts = [
+      {
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: base64Input
+        }
+      }
+    ];
+    // 参考图必须排在待编辑图之后，并在提示词中明确"第一张是要改的"
+    if (refImage) {
+      requestParts.push({
+        inlineData: {
+          mimeType: refImage.mimeType,
+          data: refImage.base64
+        }
+      });
+    }
+    requestParts.push({ text: systemInstruction });
+
     const payload = {
       contents: [{
-        parts: [
-          {
-            inlineData: {
-              mimeType: "image/jpeg",
-              data: base64Input
-            }
-          },
-          { text: systemInstruction }
-        ]
+        parts: requestParts
       }],
       generationConfig: {
         responseModalities: ["IMAGE"],
@@ -429,13 +539,31 @@ t2iBtn.addEventListener('click', async () => {
 
   window.localStorage.setItem('gemini_api_key', apiKey);
   t2iBtn.disabled = true;
-  setStatus(`正在请求 ${model} 生成全新画面...`);
+  setStatus(`正在请求 ${model} 生成全新画面${refImages.t2i ? '（含参考图）' : ''}...`);
 
   try {
+    const refImage = refImages.t2i;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    // 参考图作为额外的图像 part 传入，并明确要求"生成新画面"而不是"修图"
+    const textPart = refImage
+      ? `A reference image is attached. Use it ONLY as guidance for subject, style, mood and color palette, then generate a brand-new image that follows the instruction below. Do not copy the reference's exact composition or simply retouch it.\n\nInstruction: ${prompt}`
+      : prompt;
+
+    const requestParts = [];
+    if (refImage) {
+      requestParts.push({
+        inlineData: {
+          mimeType: refImage.mimeType,
+          data: refImage.base64
+        }
+      });
+    }
+    requestParts.push({ text: textPart });
+
     const payload = {
       contents: [{
-        parts: [{ text: prompt }]
+        parts: requestParts
       }],
       generationConfig: {
         responseModalities: ["IMAGE"],
