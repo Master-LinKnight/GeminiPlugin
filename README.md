@@ -17,6 +17,10 @@ Photoshop 原生创成式填充如果选择第三方高阶模型（如 Google Ge
 
 ## 🛠️ 最近版本改动记录 (Changelog)
 
+### v1.2.1 → v1.2.9（2026-11-11）
+
+* **🧩 局部重绘现在会真正生成图层蒙版（和 Adobe 创成式填充一致）**：新图层按选区形状自动生成蒙版，套索 / 主体选择的不规则边缘和羽化都会保留，只显示圈选区域。
+
 ### v1.2.0（2026-10-27）参考图功能
 
 * **🖼 新增「参考图」上传（两个模式都支持）**：局部重绘与全新生图都可选传一张 JPG / PNG / WebP（≤ 8MB）作为主体、风格或配色参考，相当于 Photoshop 创成式填充里的参考图。
@@ -53,8 +57,26 @@ Photoshop 原生创成式填充如果选择第三方高阶模型（如 Google Ge
 无需配置开发者模式，适合日常直接使用：
 
 1. 打开上面的 Releases 页面，下载 **`GeminiAI-Generator.ccx`**。
-2. **直接双击它**，Adobe Creative Cloud 客户端会自动弹出安装确认，点击**「安装」**。
+2. **直接双击它**，Adobe Creative Cloud 客户端会弹出安装确认。因为这是第三方插件，会提示 **「未通过 Adobe 验证」**，点击 **「本地安装 / Install locally」**，再确认一次即可。
 3. 打开 Photoshop，在顶部菜单栏选择 **「增效工具 (Plugins)」 -> 「Gemini AI 生图」**，即可直接唤出操作面板。
+
+> ⚠️ 注意：`.ccx` 是 Creative Cloud 的安装包格式，**没有 Adobe 签名/认证也能本地安装**，只是会多一次「未验证」提示；但包本身必须符合 UXP 清单规范（`manifest.json` 里要声明 `icons`，压缩包要带上 `icons/` 目录），否则会「解压了但注册不上」。
+>
+> **macOS 提示「无法安装插件，请重试。错误代码 -2 / -152」**：这不是认证问题，是 macOS 的隐私权限——Creative Cloud 安装器读不到受保护目录（文稿 / 桌面 / 下载）里的 `.ccx`。两种解法任选：
+> 1. 把 `.ccx` 拖到「下载」或桌面再双击；仍报错就到 **系统设置 → 隐私与安全性 → 完全磁盘访问**，把 **Adobe Creative Cloud** 和 **Adobe Desktop Service**（`/Library/Application Support/Adobe/Adobe Desktop Common/ADS/`）都加进去并打开开关，重启 CC 后再装；
+> 2. 直接用下面的命令行安装（已实测可用）。
+>
+> 如果双击只得到一句安装失败 / 状态码 `-190`，其实可能已经装上了——先重启 Photoshop 看插件菜单；仍有问题就用下面的命令行安装：
+>
+> ```bash
+> # macOS
+> "/Library/Application Support/Adobe/Adobe Desktop Common/RemoteComponents/UPI/UnifiedPluginInstallerAgent/UnifiedPluginInstallerAgent.app/Contents/MacOS/UnifiedPluginInstallerAgent" --install "/path/to/GeminiAI-Generator.ccx"
+>
+> # Windows（管理员 PowerShell）
+> & "C:\Program Files\Common Files\Adobe\Adobe Desktop Common\RemoteComponents\UPI\UnifiedPluginInstallerAgent\UnifiedPluginInstallerAgent.exe" --install "C:\path\to\GeminiAI-Generator.ccx"
+> ```
+>
+> 或直接用「方式二」放进 `Plug-ins` 目录，完全绕过 Creative Cloud。
 
 ---
 
@@ -64,19 +86,24 @@ Photoshop 原生创成式填充如果选择第三方高阶模型（如 Google Ge
 
 > 原理：`.ccx` 本质上就是一个 zip 压缩包，Photoshop 会扫描自己目录下的 `Plug-ins` 文件夹，把里面**解压后的插件文件夹**当作插件加载。
 
-#### 第 1 步：准备三个插件文件
+#### 第 1 步：准备插件文件
 
 两种来源任选其一：
 
 * 从 **Releases** 下载 `GeminiAI-Generator.ccx`，复制一份改后缀为 `.zip`（或直接用解压工具打开）后解压；
-* 或者直接使用本仓库的源码目录——三个文件都在 `docs/` 文件夹里。
+* 或者直接使用本仓库的源码目录——所有文件都在 `docs/` 文件夹里。
 
-无论哪种方式，最终应得到：
+无论哪种方式，最终应得到（`icons/` 是文件夹，不能丢，缺了它插件会用默认图标甚至在部分 Photoshop 版本里加载失败）：
 
 ```text
 manifest.json
 index.html
 index.js
+icons/
+  icon_D.png
+  icon_D@2x.png
+  icon_N.png
+  icon_N@2x.png
 ```
 
 #### 第 2 步：在 `Plug-ins` 目录里建插件文件夹
@@ -90,7 +117,7 @@ index.js
 1. 退出 Photoshop（`⌘Q`）。
 2. 打开「访达 → 应用程序」，找到 `Adobe Photoshop 2026` **文件夹**（不是那个 .app）。
 3. 进入其中的 `Plug-ins`，新建文件夹 `GeminiAI-Generator`。
-4. 把上一步的 3 个文件拷进去。系统提示无权访问时输入开机密码，或右键 → 显示简介 → 解锁后授权。
+4. 把上一步的 `manifest.json`、`index.html`、`index.js` **和 `icons` 文件夹**一起拷进去。系统提示无权访问时输入开机密码，或右键 → 显示简介 → 解锁后授权。
 
 **Windows**
 
@@ -112,7 +139,7 @@ C:\Program Files\Adobe\Adobe Photoshop 2026\Plug-ins\GeminiAI-Generator\
 
 #### 说明与排错
 
-* 解压时务必保证 `manifest.json` 与 `index.html`、`index.js` 在**同一层**，不要多套一层文件夹。
+* 解压时务必保证 `manifest.json`、`index.html`、`index.js` 和 `icons/` 在**同一层**，不要多套一层文件夹。
 * 这是**版本专属目录**：升级到新的 Photoshop 大版本（如 2026 → 2027）后需要重新拷一次。
 * 菜单里找不到插件时依次检查：
   1. Photoshop 版本是否 ≥ 2024（插件要求 25.0+）；
@@ -206,9 +233,10 @@ C:\Program Files\Adobe\Adobe Photoshop 2026\Plug-ins\GeminiAI-Generator\
 ```text
 GeminiPlugin/
 ├── docs/                    # 插件本体（UXP 以 manifest 所在目录为插件根）
-│   ├── manifest.json        # UXP 插件清单（声明权限、尺寸与入口）
+│   ├── manifest.json        # UXP 插件清单（权限、尺寸、入口与图标声明）
 │   ├── index.html           # 插件 UI 视图（暗色质感、响应式胶囊选项卡）
-│   └── index.js             # 核心逻辑（选区裁切、API 传输、图层对位与蒙版批处理）
+│   ├── index.js             # 核心逻辑（选区裁切、API 传输、图层对位与蒙版批处理）
+│   └── icons/               # 面板图标（明/暗两套，@1x + @2x），manifest 里必须声明
 ├── LICENSE                  # MIT 许可证
 ├── README.md                # 完整使用说明与开发手册
 ├── AUDIT.md                 # 代码审计报告
@@ -217,11 +245,13 @@ GeminiPlugin/
 
 ### 自行打包 `.ccx`
 
-`.ccx` 就是一个 zip 包，**压缩包根目录**必须直接是那三个文件（不能带 `docs/` 这一层）：
+`.ccx` 就是一个 zip 包，**压缩包根目录**必须直接是插件文件（不能带 `docs/` 这一层），并且**必须带上 `icons/`**：
+Creative Cloud 的安装器会校验清单，`manifest.json` 里没有 `icons` 声明时包可以被解压但**注册不上**（插件菜单里不会出现）。
+正式一点的做法是用 **UXP Developer Tool → Package** 生成，它在打包前就会校验图标等必填项。
 
 ```bash
 cd docs
-zip -X -q -9 ../GeminiAI-Generator.ccx manifest.json index.html index.js
+zip -X -q -9 -r ../GeminiAI-Generator.ccx manifest.json index.html index.js icons
 cd ..
 ```
 
